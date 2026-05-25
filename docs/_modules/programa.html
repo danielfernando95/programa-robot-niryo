@@ -1,0 +1,269 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>programa &mdash; Program Robot Niryo 0.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=2709fde1"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Program Robot Niryo
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../codigorobotniryo.html">codigorobotniryo module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../programa.html">programa module</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Program Robot Niryo</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Module code</a></li>
+      <li class="breadcrumb-item active">programa</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for programa</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Control de robot Niryo con reconocimiento de gestos de mano.</span>
+
+<span class="sd">Este script utiliza OpenCV y MediaPipe para capturar la mano desde la cámara,</span>
+<span class="sd">contar los dedos levantados y enviar comandos básicos al robot Niryo.</span>
+
+<span class="sd">Los gestos reconocidos son:</span>
+<span class="sd">- 1 dedo: abrir pinza</span>
+<span class="sd">- 2 dedos: cerrar pinza</span>
+<span class="sd">- 3 dedos: mover a una posición de ejemplo</span>
+<span class="sd">- 4 dedos: mover a otra posición de ejemplo</span>
+
+<span class="sd">Se incluye un filtro de estabilidad para evitar respuestas a detecciones ruidosas</span>
+<span class="sd">y un cooldown para evitar ejecuciones repetidas demasiado rápidas.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">mediapipe</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">mp</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pyniryo</span><span class="w"> </span><span class="kn">import</span> <span class="n">NiryoRobot</span><span class="p">,</span> <span class="n">JointsPosition</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
+
+<span class="c1"># =========================</span>
+<span class="c1"># CONFIGURACIÓN MEDIAPIPE</span>
+<span class="c1"># =========================</span>
+<span class="c1"># Exportamos solo las clases y utilidades de MediaPipe necesarias.</span>
+<span class="n">mp_hands</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">solutions</span><span class="o">.</span><span class="n">hands</span>
+<span class="n">mp_draw</span> <span class="o">=</span> <span class="n">mp</span><span class="o">.</span><span class="n">solutions</span><span class="o">.</span><span class="n">drawing_utils</span>
+
+<span class="c1"># =========================</span>
+<span class="c1"># FUNCIONES AUXILIARES</span>
+<span class="c1"># =========================</span>
+
+<div class="viewcode-block" id="contar_dedos">
+<a class="viewcode-back" href="../programa.html#programa.contar_dedos">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">contar_dedos</span><span class="p">(</span><span class="n">hand_landmarks</span><span class="p">,</span> <span class="n">handedness</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Cuenta los dedos levantados en una mano detectada por MediaPipe.</span>
+
+<span class="sd">    :param hand_landmarks: Landmarks normalizados de la mano.</span>
+<span class="sd">    :type hand_landmarks: mediapipe.framework.formats.landmark_pb2.NormalizedLandmarkList</span>
+<span class="sd">    :param handedness: Etiqueta de la mano detectada, &quot;Left&quot; o &quot;Right&quot;.</span>
+<span class="sd">    :type handedness: str</span>
+<span class="sd">    :returns: Cantidad de dedos levantados (0-5).</span>
+<span class="sd">    :rtype: int</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">dedos</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="c1"># ===== Pulgar =====</span>
+    <span class="c1"># El pulgar se evalúa en función de la mano izquierda o derecha.</span>
+    <span class="k">if</span> <span class="n">handedness</span> <span class="o">==</span> <span class="s2">&quot;Right&quot;</span><span class="p">:</span>
+        <span class="n">dedos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">hand_landmarks</span><span class="o">.</span><span class="n">landmark</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">x</span> <span class="o">&lt;</span> <span class="n">hand_landmarks</span><span class="o">.</span><span class="n">landmark</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">x</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dedos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">hand_landmarks</span><span class="o">.</span><span class="n">landmark</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span><span class="o">.</span><span class="n">x</span> <span class="o">&gt;</span> <span class="n">hand_landmarks</span><span class="o">.</span><span class="n">landmark</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">x</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># ===== Índice, medio, anular y meñique =====</span>
+    <span class="n">tips</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">12</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">20</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">tip</span> <span class="ow">in</span> <span class="n">tips</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">hand_landmarks</span><span class="o">.</span><span class="n">landmark</span><span class="p">[</span><span class="n">tip</span><span class="p">]</span><span class="o">.</span><span class="n">y</span> <span class="o">&lt;</span> <span class="n">hand_landmarks</span><span class="o">.</span><span class="n">landmark</span><span class="p">[</span><span class="n">tip</span> <span class="o">-</span> <span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">y</span><span class="p">:</span>
+            <span class="n">dedos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dedos</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">dedos</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="crear_hands">
+<a class="viewcode-back" href="../programa.html#programa.crear_hands">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">crear_hands</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Crea y configura el detector de manos de MediaPipe.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">mp_hands</span><span class="o">.</span><span class="n">Hands</span><span class="p">(</span>
+        <span class="n">static_image_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">max_num_hands</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">min_detection_confidence</span><span class="o">=</span><span class="mf">0.7</span><span class="p">,</span>
+        <span class="n">min_tracking_confidence</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+    <span class="p">)</span></div>
+
+
+
+<span class="c1"># =========================</span>
+<span class="c1"># FUNCIÓN PRINCIPAL</span>
+<span class="c1"># =========================</span>
+
+<div class="viewcode-block" id="main">
+<a class="viewcode-back" href="../programa.html#programa.main">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Ejecuta el bucle principal de captura, detección y control del robot.&quot;&quot;&quot;</span>
+    <span class="n">hands</span> <span class="o">=</span> <span class="n">crear_hands</span><span class="p">()</span>
+    <span class="n">cap</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">VideoCapture</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">robot</span> <span class="o">=</span> <span class="n">NiryoRobot</span><span class="p">(</span><span class="s2">&quot;169.254.200.200&quot;</span><span class="p">)</span>
+        <span class="n">robot</span><span class="o">.</span><span class="n">calibrate_auto</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;❌ Error conectando al robot:&quot;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">cap</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+        <span class="k">return</span>
+
+    <span class="n">ultimo_estado</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">ultimo_comando_tiempo</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">cooldown</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">historial</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">N</span> <span class="o">=</span> <span class="mi">5</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">ret</span><span class="p">,</span> <span class="n">frame</span> <span class="o">=</span> <span class="n">cap</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">ret</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;❌ Error leyendo la cámara&quot;</span><span class="p">)</span>
+                <span class="k">break</span>
+
+            <span class="n">frame_rgb</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2RGB</span><span class="p">)</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">hands</span><span class="o">.</span><span class="n">process</span><span class="p">(</span><span class="n">frame_rgb</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">result</span><span class="o">.</span><span class="n">multi_hand_landmarks</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">handLms</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">multi_hand_landmarks</span><span class="p">):</span>
+                    <span class="n">mp_draw</span><span class="o">.</span><span class="n">draw_landmarks</span><span class="p">(</span><span class="n">frame</span><span class="p">,</span> <span class="n">handLms</span><span class="p">,</span> <span class="n">mp_hands</span><span class="o">.</span><span class="n">HAND_CONNECTIONS</span><span class="p">)</span>
+                    <span class="n">handedness</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">multi_handedness</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">classification</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">label</span>
+                    <span class="n">dedos</span> <span class="o">=</span> <span class="n">contar_dedos</span><span class="p">(</span><span class="n">handLms</span><span class="p">,</span> <span class="n">handedness</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Dedos:&quot;</span><span class="p">,</span> <span class="n">dedos</span><span class="p">)</span>
+
+                    <span class="n">historial</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dedos</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">historial</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">N</span><span class="p">:</span>
+                        <span class="n">historial</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="n">historial</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="n">dedos</span><span class="p">)</span> <span class="o">==</span> <span class="n">N</span><span class="p">:</span>
+                        <span class="n">tiempo_actual</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="n">dedos</span> <span class="o">!=</span> <span class="n">ultimo_estado</span> <span class="ow">and</span> <span class="p">(</span><span class="n">tiempo_actual</span> <span class="o">-</span> <span class="n">ultimo_comando_tiempo</span> <span class="o">&gt;</span> <span class="n">cooldown</span><span class="p">):</span>
+                            <span class="n">ultimo_estado</span> <span class="o">=</span> <span class="n">dedos</span>
+                            <span class="n">ultimo_comando_tiempo</span> <span class="o">=</span> <span class="n">tiempo_actual</span>
+
+                            <span class="k">if</span> <span class="n">dedos</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;🟢 Abrir pinza&quot;</span><span class="p">)</span>
+                                <span class="n">robot</span><span class="o">.</span><span class="n">open_gripper</span><span class="p">()</span>
+                            <span class="k">elif</span> <span class="n">dedos</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;🔴 Cerrar pinza&quot;</span><span class="p">)</span>
+                                <span class="n">robot</span><span class="o">.</span><span class="n">close_gripper</span><span class="p">()</span>
+                            <span class="k">elif</span> <span class="n">dedos</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+                                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;➡️ Movimiento ejemplo&quot;</span><span class="p">)</span>
+                                <span class="n">pose</span> <span class="o">=</span> <span class="n">JointsPosition</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+                                <span class="n">robot</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">pose</span><span class="p">)</span>
+                            <span class="k">elif</span> <span class="n">dedos</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+                                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;➡️ Movimiento ejemplo&quot;</span><span class="p">)</span>
+                                <span class="n">pose</span> <span class="o">=</span> <span class="n">JointsPosition</span><span class="p">(</span><span class="mf">0.059</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.597</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.305</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.017</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.006</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.015</span><span class="p">)</span>
+                                <span class="n">robot</span><span class="o">.</span><span class="n">move</span><span class="p">(</span><span class="n">pose</span><span class="p">)</span>
+
+            <span class="n">cv2</span><span class="o">.</span><span class="n">putText</span><span class="p">(</span>
+                <span class="n">frame</span><span class="p">,</span>
+                <span class="sa">f</span><span class="s2">&quot;Dedos: </span><span class="si">{</span><span class="n">dedos</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="n">result</span><span class="o">.</span><span class="n">multi_hand_landmarks</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="mi">0</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">50</span><span class="p">),</span>
+                <span class="n">cv2</span><span class="o">.</span><span class="n">FONT_HERSHEY_SIMPLEX</span><span class="p">,</span>
+                <span class="mi">1</span><span class="p">,</span>
+                <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="mi">2</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">cv2</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="s2">&quot;Camara&quot;</span><span class="p">,</span> <span class="n">frame</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">cv2</span><span class="o">.</span><span class="n">waitKey</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="mh">0xFF</span> <span class="o">==</span> <span class="mi">27</span><span class="p">:</span>
+                <span class="k">break</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;🔻 Cerrando programa...&quot;</span><span class="p">)</span>
+        <span class="n">cap</span><span class="o">.</span><span class="n">release</span><span class="p">()</span>
+        <span class="n">cv2</span><span class="o">.</span><span class="n">destroyAllWindows</span><span class="p">()</span>
+        <span class="n">robot</span><span class="o">.</span><span class="n">close_connection</span><span class="p">()</span></div>
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, Daniel Fernando Reina.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
