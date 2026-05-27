@@ -1,11 +1,25 @@
+# Python
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
+*.pyd
 
-doc/build/
-
+# Virtual env
 venv/
 .env/
 
+# Build / dist
+build/
+dist/
+*.egg-info/
+
+# Sphinx
+doc/build/
+docs/_build/
+
+# IDEs
 .vscode/
 .idea/
+
+# Logs
+*.log
+*.tmp
