@@ -11,6 +11,7 @@ def ejemplo_movimientos():
     """Ejecuta movimientos de ejemplo en el robot Niryo."""
     robot = NiryoRobot("169.254.200.200")
     try:
+        """Calibra el robot."""
         robot.calibrate_auto()
 
         joints = JointsPosition(0, 0, 0, 0, 0, 0)
