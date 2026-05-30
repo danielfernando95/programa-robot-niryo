@@ -13,13 +13,13 @@ def ejemplo_movimientos():
     try:
         """Calibra el robot."""
         robot.calibrate_auto()
-
+        """Ejecuta movimientos del brazo robotico"""
         joints = JointsPosition(0, 0, 0, 0, 0, 0)
         robot.move(joints)
 
         pose = PoseObject(0.2, 0.0, 0.1, 0.0, 1.57, 0.0)
         robot.move(pose)
-
+        """Abre y cierra el brazo robotico"""
         robot.open_gripper()
         robot.close_gripper()
     finally:
