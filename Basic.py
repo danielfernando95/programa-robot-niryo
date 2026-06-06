@@ -6,7 +6,12 @@
 #   2. Mueva sus brazos a diferentes posiciones
 #   3. Regrese a su casita
 # ============================================================
-
+#Actividad modifica de J1 a J6
+# ¡Escribe tus propios números aquí!
+# Cambia los valores de J1 a J6
+#JointsPosition(___, ___, ___, ___, ___, ___)
+#Usa números entre -1 y 1
+#¡Respeta los límites de tu tabla!
 # --------------------------
 # PASO 1: Traer herramientas, conectar robot, calibrar robot
 # --------------------------
@@ -77,4 +82,5 @@ robot.move(home)
 # ============================================================
 # ¡FIN DEL PROGRAMA!
 # ============================================================
+
 
