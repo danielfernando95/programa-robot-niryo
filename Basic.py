@@ -8,13 +8,18 @@
 # ============================================================
 
 # --------------------------
-# PASO 1: Traer herramientas
+# PASO 1: Traer herramientas, conectar robot, calibrar robot
 # --------------------------
 # Necesitamos JointsPosition para decirle al robot
 # a dónde mover cada articulación.
-
 from pyniryo import JointsPosition
-
+# El robot tiene una dirección especial, como tu casa tiene
+# un número en la calle. Esta es la dirección del robot:
+DIRECCION_DEL_ROBOT = "169.254.200.200"
+# Le decimos al robot que nos escuche
+robot = NiryoRobot(DIRECCION_DEL_ROBOT)
+#Calibramos el robot para que el sepa están sus brazos
+robot.calibrate_auto()
 # --------------------------
 # PASO 2: Crear la posición HOME
 # --------------------------
@@ -72,3 +77,4 @@ robot.move(home)
 # ============================================================
 # ¡FIN DEL PROGRAMA!
 # ============================================================
+
