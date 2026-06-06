@@ -1,34 +1,74 @@
-"""Ejemplos básicos de movimientos y control de pinza para robot Niryo.
+# ============================================================
+# MI PRIMER PROGRAMA PARA EL ROBOT NED2
+# ============================================================
+# Este programa hace que el robot:
+#   1. Vaya a su casita (HOME)
+#   2. Mueva sus brazos a diferentes posiciones
+#   3. Regrese a su casita
+# ============================================================
 
-Este módulo contiene funciones de ejemplo para conectar al robot, calibrarlo y
-moverlo tanto con posiciones de articulación como con posiciones cartesianas.
-"""
+# --------------------------
+# PASO 1: Traer herramientas
+# --------------------------
+# Necesitamos JointsPosition para decirle al robot
+# a dónde mover cada articulación.
 
-from pyniryo import NiryoRobot, JointsPosition, PoseObject
+from pyniryo import JointsPosition
 
+# --------------------------
+# PASO 2: Crear la posición HOME
+# --------------------------
+# HOME es la casita del robot.
+# Todas las articulaciones están en cero (0).
 
-def ejemplo_movimientos():
-    """Ejecuta movimientos de ejemplo en el robot Niryo."""
-    robot = NiryoRobot("169.254.200.200")
-    try:
-        robot.calibrate_auto()
+home = JointsPosition(0.0002,0.4994,-1.2506,0,0,0)
 
-        joints = JointsPosition(0, 0, 0, 0, 0, 0)
-        robot.move(joints)
+# --------------------------
+# PASO 3: Ir a HOME
+# --------------------------
+# El robot va a su casita.
 
-        pose = PoseObject(0.2, 0.0, 0.1, 0.0, 1.57, 0.0)
-        robot.move(pose)
+robot.move(home)
 
-        robot.open_gripper()
-        robot.close_gripper()
-    finally:
-        robot.close_connection()
+# --------------------------
+# PASO 4: Crear el primer movimiento
+# --------------------------
+# Movemos la BASE (J1) un poquito a la derecha.
 
+posicion_1 = JointsPosition(0.3, 0, 0, 0, 0, 0)
+robot.move(posicion_1)
 
-def main():
-    """Función principal que ejecuta el ejemplo de movimiento."""
-    ejemplo_movimientos()
+# --------------------------
+# PASO 5: Crear el segundo movimiento
+# --------------------------
+# Movemos el BRAZO (J2) para que baje un poco.
 
+posicion_2 = JointsPosition(0.3, 0.2, 0, 0, 0, 0)
+robot.move(posicion_2)
 
-if __name__ == "__main__":
-    main()
+# --------------------------
+# PASO 6: Crear el tercer movimiento
+# --------------------------
+# Doblamos el CODO (J3) un poquito.
+
+posicion_3 = JointsPosition(0.3, 0.2, -0.3, 0, 0, 0)
+robot.move(posicion_3)
+
+# --------------------------
+# PASO 7: Crear el cuarto movimiento
+# --------------------------
+# Movemos la MUÑECA (J5) hacia arriba.
+
+posicion_4 = JointsPosition(0.3, 0.2, -0.3, 0, 0.2, 0)
+robot.move(posicion_4)
+
+# --------------------------
+# PASO 8: Regresar a HOME
+# --------------------------
+# Siempre regresamos a la casita al terminar.
+
+robot.move(home)
+
+# ============================================================
+# ¡FIN DEL PROGRAMA!
+# ============================================================
