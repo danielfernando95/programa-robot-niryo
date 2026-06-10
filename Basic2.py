@@ -1,43 +1,68 @@
-"""Ejemplo básico de uso del robot Niryo para guardar y ejecutar posiciones de articulaciones.
 """
-from pyniryo import NiryoRobot, JointsPosition, PoseObject
-# Inicializa la conexión con el robot Niryo especificando su dirección IP.
+ ¡Enseña a tu robot Niryo a moverse! 
+
+¿Cómo funciona?
+1. Mueve el brazo del robot con tus manos a la posición que quieras.
+2. Presiona ENTER para que el robot "memorice" esa posición.
+3. ¡El robot repetirá tus 3 movimientos como por arte de magia!
+"""
+
+from pyniryo import NiryoRobot, JointsPosition
+
+# Dirección IP del robot (pregunta a tu profe si no la conoces)
+print("¡Hola! Conectando con tu robot...")
 robot = NiryoRobot("192.168.1.10")
-# Calibras el robot para que sepa su posición inicial y pueda moverse correctamente.
+
+print("¡Conectado! El robot va a calibrarse, no lo toques todavía...")
 robot.calibrate_auto()
 
-# Abre la pinza/gripper para que el robot pueda recoger o soltar objetos.
+print("Abriendo la pinza...")
 robot.open_gripper()
 
-# Activa el modo aprendizaje para que el robot registre las posiciones actuales
-# de sus articulaciones sin ejecutar trayectorias predefinidas.
+#  Modo aprendizaje: el robot se "relaja" y tú puedes moverlo con las manos
 robot.set_learning_mode(True)
+print()
+print("¡Modo aprendizaje activado!")
+print("Ahora puedes mover el brazo del robot con tus manos.")
+print()
 
-# Pausa la ejecución hasta que el usuario presione ENTER.
-# Esto permite posicionar el robot manualmente antes de guardar los ángulos.
-input("Mueve el robot y pulsa ENTER para guardar posición...")
+# Vamos a memorizar 3 posiciones, una por una
 
-# Lista donde se almacenarán las posiciones de las articulaciones.
-posiciones = []
+input("Coloca el robot en la posición 1 y presiona ENTER...")
+posicion_1 = robot.get_joints()
+print("    ¡Posición 1 memorizada!")
 
-# Guarda tres posiciones diferentes de las articulaciones.
-# Cambia el valor 3 por otro número si quieres almacenar más o menos posiciones.
-for i in range(3):
-    input(f"Coloca posición {i+1} y pulsa ENTER...")
-    posiciones.append(robot.get_joints())
+input("Coloca el robot en la posición 2 y presiona ENTER...")
+posicion_2 = robot.get_joints()
+print("    ¡Posición 2 memorizada!")
 
-# Muestra en pantalla las posiciones guardadas para comprobación.
-print(posiciones)
+input("Coloca el robot en la posición 3 y presiona ENTER...")
+posicion_3 = robot.get_joints()
+print("    ¡Posición 3 memorizada!")
 
-# Desactiva el modo aprendizaje para que el robot vuelva a controlar sus movimientos normalmente.
+print()
+print("¡Genial! El robot memorizó tus 3 posiciones.")
+
+#  Salimos del modo aprendizaje: el robot vuelve a tener "fuerza"
 robot.set_learning_mode(False)
 
-# Mueve el robot a la primera posición guardada.
-# Si quieres ejecutar todas las posiciones guardadas, puedes recorrer la lista posiciones.
-robot.move(JointsPosition(*posiciones[0]))
+input(" Presiona ENTER para ver al robot repetir tus movimientos...")
 
-# Cierra la pinza/gripper después del movimiento.
+# El robot repite las 3 posiciones, una por una
+
+print("Moviéndose a la posición 1...")
+robot.move(JointsPosition(*posicion_1))
+
+print("Moviéndose a la posición 2...")
+robot.move(JointsPosition(*posicion_2))
+
+print("Moviéndose a la posición 3...")
+robot.move(JointsPosition(*posicion_3))
+
+print("Cerrando la pinza...")
 robot.close_gripper()
 
-# Cierra la conexión con el robot y libera recursos.
+print()
+print("¡Misión cumplida! Apagando la conexión con el robot.")
 robot.close_connection()
+print("¡Hasta la próxima aventura robótica!")
